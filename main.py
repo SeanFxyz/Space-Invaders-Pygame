@@ -28,20 +28,43 @@ playerX = 370
 playerY = 480
 playerX_change = 0
 
+enemy_freq = 2000
+
 # Enemy
 enemyImg = []
 enemyX = []
 enemyY = []
 enemyX_change = []
 enemyY_change = []
-num_of_enemies = 6
+num_of_enemies = 0
 
-for i in range(num_of_enemies):
+def add_enemy():
     enemyImg.append(pygame.image.load('enemy.png'))
-    enemyX.append(random.randint(0, 736))
-    enemyY.append(random.randint(50, 150))
+    enemyX.append(10)
+    enemyY.append(40)
     enemyX_change.append(4)
     enemyY_change.append(40)
+    global num_of_enemies
+    num_of_enemies += 1
+
+def rm_enemy(i):
+    del enemyImg[i]
+    del enemyX[i]
+    del enemyY[i]
+    del enemyX_change[i]
+    del enemyY_change[i]
+    global num_of_enemies
+    num_of_enemies -= 1
+
+add_enemy()
+
+# Enemy spawn portal
+portalImg = pygame.image.load('portal.png')
+portalX = 0
+portalY = 80
+
+# Time since last enemy spawned
+last_enemy_spawn = pygame.time.get_ticks()
 
 # Bullet
 
@@ -71,7 +94,6 @@ def show_score(x, y):
     score = font.render("Score : " + str(score_value), True, (255, 255, 255))
     screen.blit(score, (x, y))
 
-
 def game_over_text():
     over_text = over_font.render("GAME OVER", True, (255, 255, 255))
     screen.blit(over_text, (200, 250))
@@ -98,7 +120,6 @@ def isCollision(enemyX, enemyY, bulletX, bulletY):
     else:
         return False
 
-
 # Game Loop
 running = True
 while running:
@@ -107,6 +128,9 @@ while running:
     screen.fill((0, 0, 0))
     # Background Image
     screen.blit(background, (0, 0))
+    # Enemy spawn portal
+    screen.blit(portalImg, (portalX, portalY))
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -138,6 +162,11 @@ while running:
     elif playerX >= 736:
         playerX = 736
 
+    # Spawning enemies
+    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
+        add_enemy()
+        last_enemy_spawn = pygame.time.get_ticks()
+
     # Enemy Movement
     for i in range(num_of_enemies):
 
@@ -146,6 +175,22 @@ while running:
             for j in range(num_of_enemies):
                 enemyY[j] = 2000
             game_over_text()
+
+            try:
+                with open('score.txt') as score_file:
+                    stored_score = int(score_file.readline())
+                    if score_value > stored_score:
+                        highscore = font.render("High Score!!!", True, (255, 255, 255))
+                        screen.blit(highscore, (200, 300))
+                        score_file.close()
+                        write_score = True
+            except IOError:
+                write_score = True
+            if write_score:
+                with open('score.txt', 'w') as score_file:
+                    score_file.writelines(str(score_value) + '\n')
+                    score_file.close()
+
             break
 
         enemyX[i] += enemyX_change[i]
@@ -164,10 +209,21 @@ while running:
             bulletY = 480
             bullet_state = "ready"
             score_value += 1
-            enemyX[i] = random.randint(0, 736)
-            enemyY[i] = random.randint(50, 150)
+            if enemy_freq > 200:
+                enemy_freq -= 50
+            enemyX[i] = -100
+            enemyY[i] = -100
+            enemyX_change[i] = 0
+            enemyY_change[i] = 0
+        else:
+            enemy(enemyX[i], enemyY[i], i)
 
-        enemy(enemyX[i], enemyY[i], i)
+    # Removing enemies
+    i = 0
+    while i < num_of_enemies:
+        if enemyX[i] < -50 and enemyX_change[i] == 0:
+            rm_enemy(i)
+        i += 1
 
     # Bullet Movement
     if bulletY <= 0:
