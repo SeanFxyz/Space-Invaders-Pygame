@@ -3,6 +3,55 @@ import random
 
 import pygame
 from pygame import mixer
+from pygame import math.Vector2
+from pygame import 
+
+class GameObject():
+
+    def __init__(self, x=0, y=0, sprite=None, tags=[], enabled=True,
+            collision_threshold=0):
+
+        self.enabled = enabled
+        self.deleted = false
+        self.x = x
+        self.y = y
+        self.sprite = sprite
+        self.tags = tags
+        self.collision_threshold = collision_threshold
+
+    def update(self, delta):
+        pass
+
+    def on_collision(self, collider):
+        pass
+
+class Enemy(GameObject):
+    def __init__(self, x=0, y=0, sprite=None, speed=4):
+        super().__init__()
+
+        self.x, self.y = x, y
+        self.sprite = sprite
+        self.tags = ['enemy']
+
+        self.velocity = Vector2()
+        self.velocity.x = speed
+        self.changeY = 40
+
+    def update(delta):
+
+        velocity.normalize
+        self.x += self.velocity.x * delta
+        self.y += self.velocity.y * delta
+
+        if self.x <= 0:
+            self.velocity.x *= -1
+            self.y += changeY
+        elif self.x >= 736:
+            self.velocity.x *= -1
+            self.y += changeY
+
+    def on_collision(collider):
+        pass
 
 # Intialize the pygame
 pygame.init()
@@ -11,7 +60,7 @@ pygame.init()
 screen = pygame.display.set_mode((800, 600))
 
 # Background
-background = pygame.image.load('background.png')
+background = pygame.image.load('background.jpg')
 
 # Sound
 mixer.music.load("background.wav")
@@ -113,12 +162,49 @@ def fire_bullet(x, y):
     screen.blit(bulletImg, (x + 16, y + 10))
 
 
-def isCollision(enemyX, enemyY, bulletX, bulletY):
-    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
-    if distance < 27:
-        return True
-    else:
-        return False
+#def isCollision(enemyX, enemyY, bulletX, bulletY):
+#    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
+#    if distance < 27:
+#        return True
+#    else:
+#        return False
+
+def isCollision(obj1, obj2):
+    obj1_w, obj1_h = obj1.get_width(), obj1.get_height
+    obj2_w, obj2_h = obj2.get_width(), obj2.get_height
+    obj1_pixels = pygame.surfarray.array_alpha(obj1.sprite)
+    obj2_pixels = pygame.surfarray.array_alpha(obj2.sprite)
+    for x1 in obj1_w:
+        for y1 in obj1_h:
+            if obj1_pixels[x1][y1] > obj1.collision_threshold:
+                worldx, worldy = obj1.x + x1, obj1.y + y1
+                if(worldx > obj2.x and worldx < obj2.x + obj2_w and
+                        worldy > obj2.y and worldy < obj2.y + obj2_h):
+                    x2 = worldx - obj2.x
+                    y2 = worldy - obj2.y
+                    if obj2_pixels[x2][y2] > obj2.collision_threshold:
+                        return True
+
+    return False
+
+
+game_clock = pygame.time.Clock()
+
+# Game Loop
+running = True
+while running:
+    delta = game_clock.tick()
+    for obj in game_objects:
+        obj.update(delta)
+
+        for collider in game_objects:
+            if obj != collider and isCollision(obj, collider):
+                    obj.onCollision()
+            
+    i = 0
+    while i < len(game_objects):
+        if game_objects[i].deleted:
+            del game_objects[i]
 
 # Game Loop
 running = True
@@ -163,9 +249,9 @@ while running:
         playerX = 736
 
     # Spawning enemies
-    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
-        add_enemy()
-        last_enemy_spawn = pygame.time.get_ticks()
+#    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
+#        add_enemy()
+#        last_enemy_spawn = pygame.time.get_ticks()
 
     # Enemy Movement
     for i in range(num_of_enemies):
