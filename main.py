@@ -3,8 +3,7 @@ import random
 
 import pygame
 from pygame import mixer
-from pygame import math.Vector2
-from pygame import 
+from pygame import math
 
 class GameObject():
 
@@ -17,6 +16,8 @@ class GameObject():
         self.y = y
         self.sprite = sprite
         self.tags = tags
+
+        # The transparency level at which collisions are registered.
         self.collision_threshold = collision_threshold
 
     def update(self, delta):
@@ -26,14 +27,15 @@ class GameObject():
         pass
 
 class Enemy(GameObject):
-    def __init__(self, x=0, y=0, sprite=None, speed=4):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('enemy.png'), speed=4):
         super().__init__()
 
         self.x, self.y = x, y
         self.sprite = sprite
+
         self.tags = ['enemy']
 
-        self.velocity = Vector2()
+        self.velocity = math.Vector2()
         self.velocity.x = speed
         self.changeY = 40
 
@@ -51,7 +53,49 @@ class Enemy(GameObject):
             self.y += changeY
 
     def on_collision(collider):
-        pass
+        self.deleted = True
+        global score_value
+        score_value += 1
+
+class Player(GameObject):
+
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('player.png')):
+        super().__init__()
+
+        selfx, self.y = x, y
+        self.sprite = sprite
+
+        self.tags = ['player']
+
+        self.velocity = math.Vector2()
+    
+    def update(delta):
+
+        # Get Player Input
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    velocity.x -= 1
+                elif event.key == pygame.K_RIGHT:
+                    velocity.x += 1
+                elif event.key == pygame.K_UP:
+                    velocity.y -= 1
+                elif event.key == pygame.K_DOWN:
+                    velocity.y += 1
+                elif event.key == pygame.K_SPACE:
+                    self.use_weapon()
+
+        # Apply movement
+        velocity.noramlize()
+        self.x += self.velocity.x * delta
+        self.y += self.velocity.y * delta
+
+    def use_weapon():
+        if self.weapon.ready:
+            weapon.shoot()
+
+
+
 
 # Intialize the pygame
 pygame.init()
@@ -162,14 +206,14 @@ def fire_bullet(x, y):
     screen.blit(bulletImg, (x + 16, y + 10))
 
 
-#def isCollision(enemyX, enemyY, bulletX, bulletY):
+#def is_collision(enemyX, enemyY, bulletX, bulletY):
 #    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
 #    if distance < 27:
 #        return True
 #    else:
 #        return False
 
-def isCollision(obj1, obj2):
+def is_collision(obj1, obj2):
     obj1_w, obj1_h = obj1.get_width(), obj1.get_height
     obj2_w, obj2_h = obj2.get_width(), obj2.get_height
     obj1_pixels = pygame.surfarray.array_alpha(obj1.sprite)
@@ -190,6 +234,8 @@ def isCollision(obj1, obj2):
 
 game_clock = pygame.time.Clock()
 
+game_objects = [Player(
+
 # Game Loop
 running = True
 while running:
@@ -198,13 +244,15 @@ while running:
         obj.update(delta)
 
         for collider in game_objects:
-            if obj != collider and isCollision(obj, collider):
+            if obj != collider and is_collision(obj, collider):
                     obj.onCollision()
             
     i = 0
     while i < len(game_objects):
         if game_objects[i].deleted:
             del game_objects[i]
+
+exit(0)
 
 # Game Loop
 running = True
@@ -288,7 +336,7 @@ while running:
             enemyY[i] += enemyY_change[i]
 
         # Collision
-        collision = isCollision(enemyX[i], enemyY[i], bulletX, bulletY)
+        collision = is_collision(enemyX[i], enemyY[i], bulletX, bulletY)
         if collision:
             explosionSound = mixer.Sound("explosion.wav")
             explosionSound.play()
