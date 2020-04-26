@@ -1,6 +1,5 @@
 Space-Invaders-Pygame
 =====================
-Creating the game Space Invaders using Pygame Module in Python
 
 This is a fork of the pygame example game attreyabhatt/Space-Invaders-Pygame
 With a lot of alterations made to the design in an attempt to make it 
@@ -35,9 +34,6 @@ identify the object.
 
 is_event_handler -- Indicates whether the pygame event list should be
 passed as a parameter to the objects update() method.
-
-collision_threshold -- A number represented the minimum alpha channel
-value for a pixel in this object's sprite to trigger a collision.
 
 Methods:
 
