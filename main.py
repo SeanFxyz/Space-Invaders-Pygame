@@ -5,7 +5,71 @@ import pygame
 from pygame import mixer
 from pygame import math
 
+# List of all active and not-yet deleted GameObjects
 game_objects = []
+
+# Intialize the pygame
+pygame.init()
+
+# create the screen
+screen = pygame.display.set_mode((800, 600))
+
+# Background Music
+mixer.music.load("background.wav")
+mixer.music.play(-1)
+
+# Caption and Icon
+pygame.display.set_caption("Space Invader")
+icon = pygame.image.load('ufo.png')
+pygame.display.set_icon(icon)
+
+# Text Objects
+## Score
+score = 0
+score_font = pygame.font.Font('freesansbold.ttf', 32)
+## Game Over
+over_font = pygame.font.Font('freesansbold.ttf', 64)
+
+# Cached sprites
+playerImg = pygame.image.load('player.png')
+bulletImg = pygame.image.load('bullet.png')
+enemyImg = pygame.image.load('enemy.png')
+portalImg = pygame.image.load('portal.png')
+background = pygame.image.load('background.png')
+
+# Initial positions
+## Player
+playerX = 370
+playerY = 480
+## Enemy spawn portal
+portalX = 0
+portalY = 80
+
+
+# Game management
+game_clock = pygame.time.Clock()
+## Time since last enemy spawned
+last_enemy_spawn = 0
+## Enemy spawn frequency
+enemy_freq = 2000
+
+
+def add_score(enemyObj):
+    global score
+    score += enemyObj.score_value
+
+def show_score(x, y):
+    score_text = score_font.render("Score : " + str(score), True, (255, 255, 255))
+    screen.blit(score_text, (x, y))
+
+def game_over_text():
+    over_text = over_font.render("GAME OVER", True, (255, 255, 255))
+    screen.blit(over_text, (200, 250))
+
+def is_collision(obj1, obj2):
+    if obj1.hitbox.colliderect(obj2.hitbox):
+        return True
+    return False
 
 class GameObject():
 
@@ -64,6 +128,7 @@ class Enemy(GameObject):
         self.hitbox = pygame.Rect(
                 self.x, self.y,
                 self.sprite.get_width(), self.sprite.get_height())
+
     def on_collision(self, collider):
         if 'bullet' in collider.tags:
             self.deleted = True
@@ -72,7 +137,8 @@ class Enemy(GameObject):
 class Player(GameObject):
 
     def __init__(self, x=0, y=0, sprite=pygame.image.load('player.png'),
-            bullet_sprite=pygame.image.load('bullet.png')):
+            bullet_sprite=pygame.image.load('bullet.png'),
+            score_tracker=None):
 
         super().__init__()
 
@@ -102,6 +168,7 @@ class Player(GameObject):
         self.attack_time = 0
         # Attack cooldown in ms.
         self.attack_cooldown = 1000
+
     
     def update(self, delta, events):
 
@@ -154,7 +221,7 @@ class Player(GameObject):
     def on_collsion(self, collider):
         if 'enemy' in collider.tags:
             self.deleted = True
-            game_over()
+            game_over_text()
 
 
 class Bullet(GameObject):
@@ -178,70 +245,8 @@ class Bullet(GameObject):
                 self.x, self.y,
                 self.sprite.get_width(), self.sprite.get_height())
 
-
-def add_score(enemyObj):
-    global score
-    score += enemyObj.score_value
-
-def show_score(x, y):
-    score_text = score_font.render("Score : " + str(score), True, (255, 255, 255))
-    screen.blit(score_text, (x, y))
-
-def game_over_text():
-    over_text = over_font.render("GAME OVER", True, (255, 255, 255))
-    screen.blit(over_text, (200, 250))
-
-def is_collision(obj1, obj2):
-    if obj1.hitbox.colliderect(obj2.hitbox):
-        return True
-    return False
-
-# Intialize the pygame
-pygame.init()
-
-# create the screen
-screen = pygame.display.set_mode((800, 600))
-
-# Background Music
-mixer.music.load("background.wav")
-mixer.music.play(-1)
-
-# Caption and Icon
-pygame.display.set_caption("Space Invader")
-icon = pygame.image.load('ufo.png')
-pygame.display.set_icon(icon)
-
-# Text Objects
-## Score
-score = 0
-score_font = pygame.font.Font('freesansbold.ttf', 32)
-## Game Over
-over_font = pygame.font.Font('freesansbold.ttf', 64)
-
-# Cached sprites
-playerImg = pygame.image.load('player.png')
-bulletImg = pygame.image.load('bullet.png')
-enemyImg = pygame.image.load('enemy.png')
-portalImg = pygame.image.load('portal.png')
-background = pygame.image.load('background.png')
-
-# Initial positions
-## Player
-playerX = 370
-playerY = 480
-## Enemy spawn portal
-portalX = 0
-portalY = 80
-
 # Initial GameObjects
 game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
-
-# Game management
-game_clock = pygame.time.Clock()
-## Time since last enemy spawned
-last_enemy_spawn = 0
-## Enemy spawn frequency
-enemy_freq = 2000
 
 # Game Loop
 running = True
@@ -270,6 +275,9 @@ while running:
         for collider in game_objects:
             if obj != collider and is_collision(obj, collider):
                 obj.on_collision(collider)
+
+
+    show_score(0, 0)
             
     i = 0
     while i < len(game_objects):
