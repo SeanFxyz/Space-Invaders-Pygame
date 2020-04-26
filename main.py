@@ -5,6 +5,8 @@ import pygame
 from pygame import mixer
 from pygame import math
 
+game_objects = []
+
 class GameObject():
 
     def __init__(self, x=0, y=0, sprite=None, tags=[], enabled=True,
@@ -83,18 +85,30 @@ class Player(GameObject):
                 elif event.key == pygame.K_DOWN:
                     velocity.y += 1
                 elif event.key == pygame.K_SPACE:
-                    self.use_weapon()
+                    self.shoot()
 
         # Apply movement
         velocity.noramlize()
         self.x += self.velocity.x * delta
         self.y += self.velocity.y * delta
 
-    def use_weapon():
-        if self.weapon.ready:
-            weapon.shoot()
+    def shoot():
+        if self.attack_ready:
+            game_objects.append(Bullet(self.x, self.y))
 
 
+class Bullet(GameObject):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('bullet.png'), speed=20):
+        super().__init__()
+
+        self.x = x
+        self.y = y
+        self.sprite = sprite
+        self.speed = speed
+
+    def update(delta):
+
+        self.y = -= speed
 
 
 # Intialize the pygame
