@@ -9,18 +9,20 @@ game_objects = []
 
 class GameObject():
 
-    def __init__(self, x=0, y=0, sprite=None, tags=[], enabled=True,
-            collision_threshold=0):
+    def __init__(self, x=0, y=0, sprite=None):
 
-        self.enabled = enabled
-        self.deleted = false
+        self.enabled = True
+        self.deleted = False
         self.x = x
         self.y = y
         self.sprite = sprite
-        self.tags = tags
+        self.tags = []
+
+        # Whether the update function will take a list of events as a parameter.
+        self.is_event_handler = False
 
         # The transparency level at which collisions are registered.
-        self.collision_threshold = collision_threshold
+        self.collision_threshold = 0
 
     def update(self, delta):
         pass
@@ -41,9 +43,11 @@ class Enemy(GameObject):
         self.velocity.x = speed
         self.changeY = 40
 
-    def update(delta):
+        self.score_value = 1
 
-        velocity.normalize
+    def update(self, delta):
+
+        self.velocity.normalize
         self.x += self.velocity.x * delta
         self.y += self.velocity.y * delta
 
@@ -54,62 +58,140 @@ class Enemy(GameObject):
             self.velocity.x *= -1
             self.y += changeY
 
-    def on_collision(collider):
-        self.deleted = True
-        global score_value
-        score_value += 1
+    def on_collision(self, collider):
+        if 'bullet' in collider.tags:
+            self.deleted = True
+            add_score(self)
 
 class Player(GameObject):
 
-    def __init__(self, x=0, y=0, sprite=pygame.image.load('player.png')):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('player.png'),
+            bullet_sprite=pygame.image.load('bullet.png')):
+
         super().__init__()
 
         selfx, self.y = x, y
         self.sprite = sprite
+        self.bullet_sprite=bullet_sprite
 
         self.tags = ['player']
 
         self.velocity = math.Vector2()
+
+        self.is_event_handler = True
+
+        inputs = [
+                pygame.K_LEFT,
+                pygame.K_RIGHT,
+                pygame.K_UP,
+                pygame.K_DOWN,
+                pygame.K_SPACE
+                ]
+
+        self.input_state = {}
+        for i in inputs:
+            self.input_state[i] = False
+
+        self.attack_ready = True
+        self.attack_time = 0
+        # Attack cooldown in ms.
+        self.attack_cooldown = 1000
     
-    def update(delta):
+    def update(self, delta, events):
 
         # Get Player Input
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    velocity.x -= 1
-                elif event.key == pygame.K_RIGHT:
-                    velocity.x += 1
-                elif event.key == pygame.K_UP:
-                    velocity.y -= 1
-                elif event.key == pygame.K_DOWN:
-                    velocity.y += 1
-                elif event.key == pygame.K_SPACE:
-                    self.shoot()
+                if event.key in self.input_state.keys():
+                    self.input_state[event.key] = True
+            elif event.type == pygame.KEYUP:
+                if event.key in self.input_state.keys():
+                    self.input_state[event.key] = False
+
+        # Translate pressed keys to a movement direction.
+        self.velocity = math.Vector2()
+        if self.input_state[pygame.K_LEFT]:
+            self.velocity.x -= 1
+        if self.input_state[pygame.K_RIGHT]:
+            self.velocity.x += 1
+#        if self.input_state[pygame.K_UP]:
+#            self.velocity.y -= 1
+#        if self.input_state[pygame.K_DOWN:
+#            self.velocity.y += 1
+        if self.input_state[pygame.K_SPACE]:
+            self.shoot()
 
         # Apply movement
-        velocity.noramlize()
-        self.x += self.velocity.x * delta
-        self.y += self.velocity.y * delta
+        if self.velocity.length() != 0:
+            self.velocity.normalize()
+            self.x += self.velocity.x * delta
+            self.y += self.velocity.y * delta
 
-    def shoot():
+        
+        # If attack is on cooldown, check if cooldown is expired.
+        if(self.attack_ready == False and
+                pygame.time.get_ticks() - self.attack_time > self.attack_cooldown):
+
+            self.attack_ready = True
+
+    def shoot(self):
         if self.attack_ready:
-            game_objects.append(Bullet(self.x, self.y))
+            self.attack_ready = False
+            self.attack_time = pygame.time.get_ticks()
+            bulletSound = mixer.Sound("laser.wav")
+            bulletSound.play()
+            game_objects.append(Bullet(self.x, self.y, sprite=self.bullet_sprite))
+
+    def on_collsion(self, collider):
+        if 'enemy' in collider.tags:
+            game_over()
 
 
 class Bullet(GameObject):
-    def __init__(self, x=0, y=0, sprite=pygame.image.load('bullet.png'), speed=20):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('bullet.png'), speed=1):
         super().__init__()
 
         self.x = x
         self.y = y
+        self.tags = ['bullet']
         self.sprite = sprite
         self.speed = speed
 
-    def update(delta):
+    def update(self, delta):
+        self.y -= self.speed * delta
+        if self.y < -10:
+            self.deleted = True
 
-        self.y = -= speed
 
+def add_score(enemyObj):
+    global score
+    score += enemyObj.score_value
+
+def show_score(x, y):
+    score_text = score_font.render("Score : " + str(score), True, (255, 255, 255))
+    screen.blit(score_text, (x, y))
+
+def game_over_text():
+    over_text = over_font.render("GAME OVER", True, (255, 255, 255))
+    screen.blit(over_text, (200, 250))
+
+def is_collision(obj1, obj2):
+    obj1_w, obj1_h = obj1.sprite.get_width(), obj1.sprite.get_height()
+    obj2_w, obj2_h = obj2.sprite.get_width(), obj2.sprite.get_height()
+    obj1_pixels = pygame.surfarray.array_alpha(obj1.sprite)
+    obj2_pixels = pygame.surfarray.array_alpha(obj2.sprite)
+    for x1 in range(obj1_w):
+        for y1 in range(obj1_h):
+            if obj1_pixels[x1][y1] > obj1.collision_threshold:
+                worldx, worldy = obj1.x + x1, obj1.y + y1
+                if(worldx > obj2.x and worldx < obj2.x + obj2_w and
+                        worldy > obj2.y and worldy < obj2.y + obj2_h):
+                    x2 = int(worldx - obj2.x)
+                    y2 = int(worldy - obj2.y)
+                    if obj2_pixels[x2][y2] > obj2.collision_threshold:
+                        return True
+
+    return False
 
 # Intialize the pygame
 pygame.init()
@@ -117,10 +199,7 @@ pygame.init()
 # create the screen
 screen = pygame.display.set_mode((800, 600))
 
-# Background
-background = pygame.image.load('background.jpg')
-
-# Sound
+# Background Music
 mixer.music.load("background.wav")
 mixer.music.play(-1)
 
@@ -129,142 +208,73 @@ pygame.display.set_caption("Space Invader")
 icon = pygame.image.load('ufo.png')
 pygame.display.set_icon(icon)
 
-# Player
+# Text Objects
+## Score
+score = 0
+score_font = pygame.font.Font('freesansbold.ttf', 32)
+## Game Over
+over_font = pygame.font.Font('freesansbold.ttf', 64)
+
+# Cached sprites
 playerImg = pygame.image.load('player.png')
+bulletImg = pygame.image.load('bullet.png')
+portalImg = pygame.image.load('portal.png')
+background = pygame.image.load('background.png')
+
+# Initial positions
+## Player
 playerX = 370
 playerY = 480
-playerX_change = 0
-
-enemy_freq = 2000
-
-# Enemy
-enemyImg = []
-enemyX = []
-enemyY = []
-enemyX_change = []
-enemyY_change = []
-num_of_enemies = 0
-
-def add_enemy():
-    enemyImg.append(pygame.image.load('enemy.png'))
-    enemyX.append(10)
-    enemyY.append(40)
-    enemyX_change.append(4)
-    enemyY_change.append(40)
-    global num_of_enemies
-    num_of_enemies += 1
-
-def rm_enemy(i):
-    del enemyImg[i]
-    del enemyX[i]
-    del enemyY[i]
-    del enemyX_change[i]
-    del enemyY_change[i]
-    global num_of_enemies
-    num_of_enemies -= 1
-
-add_enemy()
-
-# Enemy spawn portal
-portalImg = pygame.image.load('portal.png')
+## Enemy spawn portal
 portalX = 0
 portalY = 80
 
-# Time since last enemy spawned
-last_enemy_spawn = pygame.time.get_ticks()
+# Initial GameObjects
+game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
+game_objects.append(Enemy(400, 100, speed=0))
 
-# Bullet
-
-# Ready - You can't see the bullet on the screen
-# Fire - The bullet is currently moving
-
-bulletImg = pygame.image.load('bullet.png')
-bulletX = 0
-bulletY = 480
-bulletX_change = 0
-bulletY_change = 10
-bullet_state = "ready"
-
-# Score
-
-score_value = 0
-font = pygame.font.Font('freesansbold.ttf', 32)
-
-textX = 10
-testY = 10
-
-# Game Over
-over_font = pygame.font.Font('freesansbold.ttf', 64)
-
-
-def show_score(x, y):
-    score = font.render("Score : " + str(score_value), True, (255, 255, 255))
-    screen.blit(score, (x, y))
-
-def game_over_text():
-    over_text = over_font.render("GAME OVER", True, (255, 255, 255))
-    screen.blit(over_text, (200, 250))
-
-
-def player(x, y):
-    screen.blit(playerImg, (x, y))
-
-
-def enemy(x, y, i):
-    screen.blit(enemyImg[i], (x, y))
-
-
-def fire_bullet(x, y):
-    global bullet_state
-    bullet_state = "fire"
-    screen.blit(bulletImg, (x + 16, y + 10))
-
-
-#def is_collision(enemyX, enemyY, bulletX, bulletY):
-#    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
-#    if distance < 27:
-#        return True
-#    else:
-#        return False
-
-def is_collision(obj1, obj2):
-    obj1_w, obj1_h = obj1.get_width(), obj1.get_height
-    obj2_w, obj2_h = obj2.get_width(), obj2.get_height
-    obj1_pixels = pygame.surfarray.array_alpha(obj1.sprite)
-    obj2_pixels = pygame.surfarray.array_alpha(obj2.sprite)
-    for x1 in obj1_w:
-        for y1 in obj1_h:
-            if obj1_pixels[x1][y1] > obj1.collision_threshold:
-                worldx, worldy = obj1.x + x1, obj1.y + y1
-                if(worldx > obj2.x and worldx < obj2.x + obj2_w and
-                        worldy > obj2.y and worldy < obj2.y + obj2_h):
-                    x2 = worldx - obj2.x
-                    y2 = worldy - obj2.y
-                    if obj2_pixels[x2][y2] > obj2.collision_threshold:
-                        return True
-
-    return False
-
-
+# Game management
 game_clock = pygame.time.Clock()
-
-game_objects = [Player(
+## Time since last enemy spawned
+last_enemy_spawn = 0
+## Enemy spawn frequency
+enemy_freq = 2000
 
 # Game Loop
 running = True
 while running:
+
     delta = game_clock.tick()
+    events = pygame.event.get()
+
+    # Initialize screen
+    screen.fill((0, 0, 0))
+    screen.blit(background, (0, 0))
+    screen.blit(portalImg, (portalX, portalY))
+
     for obj in game_objects:
-        obj.update(delta)
+        if obj.is_event_handler == True:
+            obj.update(delta, events)
+        else:
+            obj.update(delta)
+        screen.blit(obj.sprite, (obj.x, obj.y))
 
         for collider in game_objects:
             if obj != collider and is_collision(obj, collider):
-                    obj.onCollision()
+                obj.on_collision(collider)
             
     i = 0
     while i < len(game_objects):
         if game_objects[i].deleted:
             del game_objects[i]
+        else:
+            i += 1
+
+    for event in events:
+        if event.type == pygame.QUIT:
+            running = False
+
+    pygame.display.update()
 
 exit(0)
 
@@ -272,34 +282,8 @@ exit(0)
 running = True
 while running:
 
-    # RGB = Red, Green, Blue
-    screen.fill((0, 0, 0))
-    # Background Image
-    screen.blit(background, (0, 0))
-    # Enemy spawn portal
-    screen.blit(portalImg, (portalX, portalY))
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
 
-        # if keystroke is pressed check whether its right or left
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                playerX_change = -5
-            if event.key == pygame.K_RIGHT:
-                playerX_change = 5
-            if event.key == pygame.K_SPACE:
-                if bullet_state is "ready":
-                    bulletSound = mixer.Sound("laser.wav")
-                    bulletSound.play()
-                    # Get the current x cordinate of the spaceship
-                    bulletX = playerX
-                    fire_bullet(bulletX, bulletY)
-
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                playerX_change = 0
 
     # 5 = 5 + -0.1 -> 5 = 5 - 0.1
     # 5 = 5 + 0.1
@@ -327,7 +311,7 @@ while running:
             try:
                 with open('score.txt') as score_file:
                     stored_score = int(score_file.readline())
-                    if score_value > stored_score:
+                    if score > stored_score:
                         highscore = font.render("High Score!!!", True, (255, 255, 255))
                         screen.blit(highscore, (200, 300))
                         score_file.close()
@@ -336,7 +320,7 @@ while running:
                 write_score = True
             if write_score:
                 with open('score.txt', 'w') as score_file:
-                    score_file.writelines(str(score_value) + '\n')
+                    score_file.writelines(str(score) + '\n')
                     score_file.close()
 
             break
@@ -356,7 +340,7 @@ while running:
             explosionSound.play()
             bulletY = 480
             bullet_state = "ready"
-            score_value += 1
+            score += 1
             if enemy_freq > 200:
                 enemy_freq -= 50
             enemyX[i] = -100
@@ -384,4 +368,3 @@ while running:
 
     player(playerX, playerY)
     show_score(textX, testY)
-    pygame.display.update()
