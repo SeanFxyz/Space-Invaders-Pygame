@@ -17,12 +17,10 @@ class GameObject():
         self.y = y
         self.sprite = sprite
         self.tags = []
+        self.hitbox = pygame.Rect(0, 0, 0, 0)
 
         # Whether the update function will take a list of events as a parameter.
         self.is_event_handler = False
-
-        # The transparency level at which collisions are registered.
-        self.collision_threshold = 0
 
     def update(self, delta):
         pass
@@ -31,11 +29,14 @@ class GameObject():
         pass
 
 class Enemy(GameObject):
-    def __init__(self, x=0, y=0, sprite=pygame.image.load('enemy.png'), speed=4):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('enemy.png'), speed=1):
         super().__init__()
 
         self.x, self.y = x, y
         self.sprite = sprite
+        self.hitbox = pygame.Rect(
+                self.x, self.y,
+                self.sprite.get_width(), self.sprite.get_height())
 
         self.tags = ['enemy']
 
@@ -53,11 +54,16 @@ class Enemy(GameObject):
 
         if self.x <= 0:
             self.velocity.x *= -1
-            self.y += changeY
+            self.x = 1
+            self.y += self.changeY
         elif self.x >= 736:
             self.velocity.x *= -1
-            self.y += changeY
+            self.x = 735
+            self.y += self.changeY
 
+        self.hitbox = pygame.Rect(
+                self.x, self.y,
+                self.sprite.get_width(), self.sprite.get_height())
     def on_collision(self, collider):
         if 'bullet' in collider.tags:
             self.deleted = True
@@ -127,6 +133,9 @@ class Player(GameObject):
             self.x += self.velocity.x * delta
             self.y += self.velocity.y * delta
 
+        self.hitbox = pygame.Rect(
+                self.x, self.y,
+                self.sprite.get_width(), self.sprite.get_height())
         
         # If attack is on cooldown, check if cooldown is expired.
         if(self.attack_ready == False and
@@ -144,6 +153,7 @@ class Player(GameObject):
 
     def on_collsion(self, collider):
         if 'enemy' in collider.tags:
+            self.deleted = True
             game_over()
 
 
@@ -156,11 +166,17 @@ class Bullet(GameObject):
         self.tags = ['bullet']
         self.sprite = sprite
         self.speed = speed
+        self.hitbox = pygame.Rect(
+                self.x, self.y,
+                self.sprite.get_width(), self.sprite.get_height())
 
     def update(self, delta):
         self.y -= self.speed * delta
         if self.y < -10:
             self.deleted = True
+        self.hitbox = pygame.Rect(
+                self.x, self.y,
+                self.sprite.get_width(), self.sprite.get_height())
 
 
 def add_score(enemyObj):
@@ -176,21 +192,8 @@ def game_over_text():
     screen.blit(over_text, (200, 250))
 
 def is_collision(obj1, obj2):
-    obj1_w, obj1_h = obj1.sprite.get_width(), obj1.sprite.get_height()
-    obj2_w, obj2_h = obj2.sprite.get_width(), obj2.sprite.get_height()
-    obj1_pixels = pygame.surfarray.array_alpha(obj1.sprite)
-    obj2_pixels = pygame.surfarray.array_alpha(obj2.sprite)
-    for x1 in range(obj1_w):
-        for y1 in range(obj1_h):
-            if obj1_pixels[x1][y1] > obj1.collision_threshold:
-                worldx, worldy = obj1.x + x1, obj1.y + y1
-                if(worldx > obj2.x and worldx < obj2.x + obj2_w and
-                        worldy > obj2.y and worldy < obj2.y + obj2_h):
-                    x2 = int(worldx - obj2.x)
-                    y2 = int(worldy - obj2.y)
-                    if obj2_pixels[x2][y2] > obj2.collision_threshold:
-                        return True
-
+    if obj1.hitbox.colliderect(obj2.hitbox):
+        return True
     return False
 
 # Intialize the pygame
@@ -218,6 +221,7 @@ over_font = pygame.font.Font('freesansbold.ttf', 64)
 # Cached sprites
 playerImg = pygame.image.load('player.png')
 bulletImg = pygame.image.load('bullet.png')
+enemyImg = pygame.image.load('enemy.png')
 portalImg = pygame.image.load('portal.png')
 background = pygame.image.load('background.png')
 
@@ -231,7 +235,7 @@ portalY = 80
 
 # Initial GameObjects
 game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
-game_objects.append(Enemy(400, 100, speed=0))
+game_objects.append(Enemy(400, 100, enemyImg, speed=0))
 
 # Game management
 game_clock = pygame.time.Clock()
@@ -251,6 +255,11 @@ while running:
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
     screen.blit(portalImg, (portalX, portalY))
+
+    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
+        game_objects.append(Enemy(0, 80, sprite=enemyImg))
+        last_enemy_spawn = pygame.time.get_ticks()
+
 
     for obj in game_objects:
         if obj.is_event_handler == True:
@@ -277,94 +286,3 @@ while running:
     pygame.display.update()
 
 exit(0)
-
-# Game Loop
-running = True
-while running:
-
-
-
-
-    # 5 = 5 + -0.1 -> 5 = 5 - 0.1
-    # 5 = 5 + 0.1
-
-    playerX += playerX_change
-    if playerX <= 0:
-        playerX = 0
-    elif playerX >= 736:
-        playerX = 736
-
-    # Spawning enemies
-#    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
-#        add_enemy()
-#        last_enemy_spawn = pygame.time.get_ticks()
-
-    # Enemy Movement
-    for i in range(num_of_enemies):
-
-        # Game Over
-        if enemyY[i] > 440:
-            for j in range(num_of_enemies):
-                enemyY[j] = 2000
-            game_over_text()
-
-            try:
-                with open('score.txt') as score_file:
-                    stored_score = int(score_file.readline())
-                    if score > stored_score:
-                        highscore = font.render("High Score!!!", True, (255, 255, 255))
-                        screen.blit(highscore, (200, 300))
-                        score_file.close()
-                        write_score = True
-            except IOError:
-                write_score = True
-            if write_score:
-                with open('score.txt', 'w') as score_file:
-                    score_file.writelines(str(score) + '\n')
-                    score_file.close()
-
-            break
-
-        enemyX[i] += enemyX_change[i]
-        if enemyX[i] <= 0:
-            enemyX_change[i] = 4
-            enemyY[i] += enemyY_change[i]
-        elif enemyX[i] >= 736:
-            enemyX_change[i] = -4
-            enemyY[i] += enemyY_change[i]
-
-        # Collision
-        collision = is_collision(enemyX[i], enemyY[i], bulletX, bulletY)
-        if collision:
-            explosionSound = mixer.Sound("explosion.wav")
-            explosionSound.play()
-            bulletY = 480
-            bullet_state = "ready"
-            score += 1
-            if enemy_freq > 200:
-                enemy_freq -= 50
-            enemyX[i] = -100
-            enemyY[i] = -100
-            enemyX_change[i] = 0
-            enemyY_change[i] = 0
-        else:
-            enemy(enemyX[i], enemyY[i], i)
-
-    # Removing enemies
-    i = 0
-    while i < num_of_enemies:
-        if enemyX[i] < -50 and enemyX_change[i] == 0:
-            rm_enemy(i)
-        i += 1
-
-    # Bullet Movement
-    if bulletY <= 0:
-        bulletY = 480
-        bullet_state = "ready"
-
-    if bullet_state is "fire":
-        fire_bullet(bulletX, bulletY)
-        bulletY -= bulletY_change
-
-    player(playerX, playerY)
-    show_score(textX, testY)
