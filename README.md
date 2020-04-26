@@ -56,10 +56,9 @@ colliding.
 Collision checking
 ------------------
 
-General-purpose collision checking system now seems to be working.
-Collisions are registered if two object's sprites have overlapping
-pixels whose alpha values are greater than or equal to the objects
-collision_threshold value.
+Every GameObject has its own hitbox described by a pygame.Rect object.
+Each GameObject is responsible for moving and adjusting its own hitbox
+in accordance with any of its movements or changes in size.
 
 Input and movement
 ------------------
