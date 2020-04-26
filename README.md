@@ -1,4 +1,5 @@
-# Space-Invaders-Pygame
+Space-Invaders-Pygame
+=====================
 Creating the game Space Invaders using Pygame Module in Python
 
 This is a fork of the pygame example game attreyabhatt/Space-Invaders-Pygame
