@@ -235,7 +235,6 @@ portalY = 80
 
 # Initial GameObjects
 game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
-game_objects.append(Enemy(400, 100, enemyImg, speed=0))
 
 # Game management
 game_clock = pygame.time.Clock()
