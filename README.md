@@ -35,6 +35,8 @@ identify the object.
 is_event_handler -- Indicates whether the pygame event list should be
 passed as a parameter to the objects update() method.
 
+hitbox -- A pygame.Rect instance representing the object's hitbox.
+
 Methods:
 
 update(self, delta)
