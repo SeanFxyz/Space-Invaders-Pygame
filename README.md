@@ -13,32 +13,32 @@ Player, Enemy, and Bullet are now implemented as subclasses of a GameObject clas
 
 Properties:
 
-`enabled` -- boolean that represents if the object should be updated
+- `enabled`: boolean that represents if the object should be updated
 
-`deleted` -- boolean that represents if the object is to be deleted. If true, the object will be removed from the global `game_objects` list.
+- `deleted`: boolean that represents if the object is to be deleted. If true, the object will be removed from the global `game_objects` list.
 
-`x` -- The object's x coordinate
+- `x`: The object's x coordinate
 
-`y` -- The object's y coordinate
+- `y`: The object's y coordinate
 
-`sprite` -- The object's sprite as a pygame Surface object
+- `sprite`: The object's sprite as a pygame Surface object
 
-`tags` -- A list of strings (or whatever else you'd want to use) to identify the object.
+- `tags`: A list of strings (or whatever else you'd want to use) to identify the object.
 
-`hitboxes` -- A list of pygame.Rect() objects represented colliding parts of the object.
+- `hitboxes`: A list of pygame.Rect() objects represented colliding parts of the object.
 
-`is_event_handler` -- Indicates whether the pygame event list should be passed as a parameter to the objects `update()` method.
+- `is_event_handler`: Indicates whether the pygame event list should be passed as a parameter to the objects `update()` method.
 
-`collision_threshold` -- A number represented the minimum alpha channel value for a pixel in this object's sprite to trigger a collision.
+- `collision_threshold`: A number represented the minimum alpha channel value for a pixel in this object's sprite to trigger a collision.
 
-`hitbox` -- A pygame.Rect instance representing the object's hitbox.
+- `hitbox`: A pygame.Rect instance representing the object's hitbox.
 
 Methods:
 
-`update(self, delta)`
-`update(self, delta, events)` -- During the game loop, all enabled GameObjects in the `game_objects` list will have this method called. delta should be the time that has passed since the last rendered frame, and events, if the object is marked as an event handler by its `is_event_handler` property, should be the current pygame event queue.
+- `update(self, delta)`,
+`update(self, delta, events)`: During the game loop, all enabled GameObjects in the `game_objects` list will have this method called. delta should be the time that has passed since the last rendered frame, and events, if the object is marked as an event handler by its `is_event_handler` property, should be the current pygame event queue.
 
-`on_collision(self, collider)` -- In the game loop, any object that is detected to be colliding with another object will have this method called. collider will be the object with which this GameObject is colliding.
+- `on_collision(self, collider)`: In the game loop, any object that is detected to be colliding with another object will have this method called. collider will be the object with which this GameObject is colliding.
 
 Collision checking
 ------------------
