@@ -67,8 +67,10 @@ def game_over_text():
     screen.blit(over_text, (200, 250))
 
 def is_collision(obj1, obj2):
-    if obj1.hitbox.colliderect(obj2.hitbox):
-        return True
+    for hb1 in obj1.hitboxes:
+        for hb2 in obj2.hitboxes:
+            if hb1.colliderect(hb2):
+                return True
     return False
 
 class GameObject():
@@ -81,7 +83,7 @@ class GameObject():
         self.y = y
         self.sprite = sprite
         self.tags = []
-        self.hitbox = pygame.Rect(0, 0, 0, 0)
+        self.hitboxes = [pygame.Rect(0, 0, 0, 0)]
 
         # Whether the update function will take a list of events as a parameter.
         self.is_event_handler = False
@@ -98,9 +100,11 @@ class Enemy(GameObject):
 
         self.x, self.y = x, y
         self.sprite = sprite
-        self.hitbox = pygame.Rect(
-                self.x, self.y,
-                self.sprite.get_width(), self.sprite.get_height())
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
 
         self.tags = ['enemy']
 
@@ -125,9 +129,11 @@ class Enemy(GameObject):
             self.x = 735
             self.y += self.changeY
 
-        self.hitbox = pygame.Rect(
-                self.x, self.y,
-                self.sprite.get_width(), self.sprite.get_height())
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
 
     def on_collision(self, collider):
         if 'bullet' in collider.tags:
@@ -200,9 +206,11 @@ class Player(GameObject):
             self.x += self.velocity.x * delta
             self.y += self.velocity.y * delta
 
-        self.hitbox = pygame.Rect(
-                self.x, self.y,
-                self.sprite.get_width(), self.sprite.get_height())
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
         
         # If attack is on cooldown, check if cooldown is expired.
         if(self.attack_ready == False and
@@ -233,17 +241,21 @@ class Bullet(GameObject):
         self.tags = ['bullet']
         self.sprite = sprite
         self.speed = speed
-        self.hitbox = pygame.Rect(
-                self.x, self.y,
-                self.sprite.get_width(), self.sprite.get_height())
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
 
     def update(self, delta):
         self.y -= self.speed * delta
         if self.y < -10:
             self.deleted = True
-        self.hitbox = pygame.Rect(
-                self.x, self.y,
-                self.sprite.get_width(), self.sprite.get_height())
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
 
 # Initial GameObjects
 game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
