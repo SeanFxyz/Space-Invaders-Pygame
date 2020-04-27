@@ -11,7 +11,7 @@ The GameObject class and subclasses:
 
 Player, Enemy, and Bullet are now implemented as subclasses of a GameObject class. GameObjects can be added to the game by adding them to the global `game_objects` list, while their behaviors are defined by their own `update()` and `on_collision()` methods. Every GameObject has at least the following attributes:
 
-Properties:
+### Properties:
 
 - `enabled`: boolean that represents if the object should be updated
 
@@ -33,7 +33,7 @@ Properties:
 
 - `hitbox`: A pygame.Rect instance representing the object's hitbox.
 
-Methods:
+### Methods:
 
 - `update(self, delta)`,
 `update(self, delta, events)`: During the game loop, all enabled GameObjects in the `game_objects` list will have this method called. delta should be the time that has passed since the last rendered frame, and events, if the object is marked as an event handler by its `is_event_handler` property, should be the current pygame event queue.
