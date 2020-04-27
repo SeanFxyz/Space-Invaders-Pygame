@@ -27,9 +27,7 @@ Player, Enemy, and Bullet are now implemented as subclasses of a GameObject clas
 
 - `hitboxes`: A list of pygame.Rect() objects represented colliding parts of the object.
 
-- `is_event_handler`: Indicates whether the pygame event list should be passed as a parameter to the objects `update()` method.
-
-- `collision_threshold`: A number represented the minimum alpha channel value for a pixel in this object's sprite to trigger a collision.
+- `is_event_handler`: Indicates whether the pygame event list should be passed as a parameter to the object's `update()` method.
 
 - `hitbox`: A pygame.Rect instance representing the object's hitbox.
 
