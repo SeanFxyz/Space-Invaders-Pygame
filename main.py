@@ -226,7 +226,7 @@ class Player(GameObject):
             bulletSound.play()
             game_objects.append(Bullet(self.x, self.y, sprite=self.bullet_sprite))
 
-    def on_collsion(self, collider):
+    def on_collision(self, collider):
         if 'enemy' in collider.tags:
             self.deleted = True
             game_over_text()
