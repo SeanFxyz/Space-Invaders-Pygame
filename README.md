@@ -9,7 +9,7 @@ Design changes from the original game:
 The GameObject class and subclasses:
 ------------------------------------
 
-Player, Enemy, and Bullet are now implemented as subclasses of a GameObject class. GameObjects can be added to the game by adding them to the global `game_objects` list, while their behaviors are defined by their own `update()` and `on_collision()` methods. Every GameObject has at least the following attributes:
+The player, enemies, bullets, and other in-game objects are now implemented as subclasses of a GameObject class. GameObjects can be added to the game by adding them to the global `game_objects` list, while their behaviors are defined by their own `update()` and `on_collision()` methods. Every GameObject has at least the following attributes:
 
 ### Properties:
 

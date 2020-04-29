@@ -15,8 +15,8 @@ pygame.init()
 screen = pygame.display.set_mode((800, 600))
 
 # Background Music
-mixer.music.load("background.wav")
-mixer.music.play(-1)
+#mixer.music.load("background.wav")
+#mixer.music.play(-1)
 
 # Caption and Icon
 pygame.display.set_caption("Space Invader")
@@ -37,14 +37,6 @@ enemyImg = pygame.image.load('enemy.png')
 portalImg = pygame.image.load('portal.png')
 background = pygame.image.load('background.png')
 
-# Initial positions
-## Player
-playerX = 370
-playerY = 480
-## Enemy spawn portal
-portalX = 0
-portalY = 80
-
 
 # Game management
 game_clock = pygame.time.Clock()
@@ -52,7 +44,6 @@ game_clock = pygame.time.Clock()
 last_enemy_spawn = 0
 ## Enemy spawn frequency
 enemy_freq = 2000
-
 
 def add_score(enemyObj):
     global score
@@ -147,10 +138,12 @@ class Player(GameObject):
             score_tracker=None):
 
         super().__init__()
-
+        
         selfx, self.y = x, y
         self.sprite = sprite
-        self.bullet_sprite=bullet_sprite
+        self.bullet_sprite = bullet_sprite
+        self.bullet_xoffset = (
+                self.sprite.get_width() / 2 - bullet_sprite.get_width() / 2)
 
         self.tags = ['player']
 
@@ -174,6 +167,8 @@ class Player(GameObject):
         self.attack_time = 0
         # Attack cooldown in ms.
         self.attack_cooldown = 1000
+
+        self.bullet_dmg = 10
 
     
     def update(self, delta, events):
@@ -208,8 +203,8 @@ class Player(GameObject):
 
         self.hitboxes = [
                 pygame.Rect(
-                    self.x, self.y,
-                    self.sprite.get_width(), self.sprite.get_height())
+                    self.x + 5, self.y + 5,
+                    self.sprite.get_width() - 5, self.sprite.get_height() - 5)
                 ]
         
         # If attack is on cooldown, check if cooldown is expired.
@@ -224,16 +219,20 @@ class Player(GameObject):
             self.attack_time = pygame.time.get_ticks()
             bulletSound = mixer.Sound("laser.wav")
             bulletSound.play()
-            game_objects.append(Bullet(self.x, self.y, sprite=self.bullet_sprite))
+            game_objects.append(Bullet(self.x + self.bullet_xoffset, self.y,
+                sprite=self.bullet_sprite, dmg=self.bullet_dmg))
 
     def on_collision(self, collider):
         if 'enemy' in collider.tags:
             self.deleted = True
-            game_over_text()
-
+            game_objects.append(
+                    GameObject(200, 250, 
+                        over_font.render("GAME OVER", True, (255, 255, 255))))
 
 class Bullet(GameObject):
-    def __init__(self, x=0, y=0, sprite=pygame.image.load('bullet.png'), speed=1):
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('bullet.png'),
+            speed=1, dmg=10):
+
         super().__init__()
 
         self.x = x
@@ -247,6 +246,8 @@ class Bullet(GameObject):
                     self.sprite.get_width(), self.sprite.get_height())
                 ]
 
+        self.dmg = dmg
+
     def update(self, delta):
         self.y -= self.speed * delta
         if self.y < -10:
@@ -257,8 +258,55 @@ class Bullet(GameObject):
                     self.sprite.get_width(), self.sprite.get_height())
                 ]
 
+class EnemySpawner(GameObject):
+
+    def __init__(self, x=0, y=0, sprite=pygame.image.load('portal.png'),
+            cooldown=1000, speed=1):
+
+        super().__init__()
+
+        self.x, self.y = x, y
+        self.sprite = sprite
+        self.tags = ['enemySpawner']
+        self.hitboxes = [
+                pygame.Rect(
+                    self.x, self.y,
+                    self.sprite.get_width(), self.sprite.get_height())
+                ]
+
+        self.cooldown = cooldown
+        self.hp = 100
+        self.last_spawn = pygame.time.get_ticks()
+        self.speed = speed
+
+    def update(self, delta):
+        time = pygame.time.get_ticks()
+        if time - self.last_spawn >= self.cooldown:
+            game_objects.append(Enemy(self.x, self.y + 30,
+                        sprite=enemyImg, speed=self.speed))
+            self.last_spawn = time
+
+    def on_collision(self, collider):
+        if 'bullet' in collider.tags:
+            self.hp -= collider.dmg
+            collider.deleted = True
+            if self.hp <= 0:
+                self.deleted = True
+
+# Initial positions
+## Player
+playerX = 370
+playerY = 480
+## Enemy spawn portal
+portalX = 0
+portalY = 80
+
 # Initial GameObjects
-game_objects.append(Player(playerX, playerY, playerImg, bulletImg))
+game_objects.append(
+        Player(playerX, playerY, playerImg, bulletImg))
+game_objects.append(
+        EnemySpawner(0, 80, sprite=portalImg,
+            cooldown=1000, speed=1))
 
 # Game Loop
 running = True
@@ -270,19 +318,21 @@ while running:
     # Initialize screen
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
-    screen.blit(portalImg, (portalX, portalY))
 
-    if pygame.time.get_ticks() - last_enemy_spawn > enemy_freq:
-        game_objects.append(Enemy(0, 80, sprite=enemyImg))
-        last_enemy_spawn = pygame.time.get_ticks()
-
+    i = 0
+    while i < len(game_objects):
+        if game_objects[i].deleted:
+            del game_objects[i]
+        else:
+            i += 1
 
     for obj in game_objects:
-        if obj.is_event_handler == True:
-            obj.update(delta, events)
-        else:
-            obj.update(delta)
-        screen.blit(obj.sprite, (obj.x, obj.y))
+        if obj.enabled:
+            if obj.is_event_handler:
+                obj.update(delta, events)
+            else:
+                obj.update(delta)
+            screen.blit(obj.sprite, (obj.x, obj.y))
 
         for collider in game_objects:
             if obj != collider and is_collision(obj, collider):
@@ -291,13 +341,6 @@ while running:
 
     show_score(0, 0)
             
-    i = 0
-    while i < len(game_objects):
-        if game_objects[i].deleted:
-            del game_objects[i]
-        else:
-            i += 1
-
     for event in events:
         if event.type == pygame.QUIT:
             running = False
